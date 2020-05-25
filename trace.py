@@ -1,14 +1,16 @@
+from __future__ import print_function
 from bcc import BPF
 from bcc.utils import printb
+
+def print_event(cpu, data, size):
+    event = bpf["events"].event(data)
+    print("%-6d %-16s" %  (event.pid, event.comm))
 
 bpf = BPF(src_file = "trace.c");
 bpf.attach_kprobe(event = "tcp_v4_connect", fn_name = "tcp_connect")
 bpf.attach_kretprobe(event = "tcp_v4_connect", fn_name = "tcp_connect_ret")
+bpf["events"].open_perf_buffer(print_event)
 
-print("%-18s %-16s %-6s %s" % ("TIME(s)", "COMM", "PID", "MESSAGE"))
 while 1:
-    try:
-        (task, pid, cpu, flags, ts, msg) = bpf.trace_fields()
-    except ValueError:
-        continue
-    print("%-18.9f %-16s %-6d %s" % (ts, task, pid, msg))
+    bpf.perf_buffer_poll()
+
