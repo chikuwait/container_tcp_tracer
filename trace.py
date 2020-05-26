@@ -12,7 +12,7 @@ def ntoa(addr):
 
 def print_event(cpu, data, size):
     event = bpf["events"].event(data)
-    print("%-6d %-16s %-s %-s %-d" %  (event.pid, event.comm, ntoa(event.saddr), ntoa(event.daddr), event.dport))
+    print("%-6d %-s %-16s %-s %-s %-d" %  (event.pid, event.nodename, event.comm, ntoa(event.saddr), ntoa(event.daddr), event.dport))
 
 bpf = BPF(src_file = "trace.c");
 bpf.attach_kprobe(event = "tcp_v4_connect", fn_name = "tcp_connect")

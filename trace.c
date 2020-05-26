@@ -11,6 +11,7 @@ struct data_t{
     u32 daddr;
     u16 dport;
     int level;
+    char nodename[64];
 };
 BPF_HASH(socklist, u32, struct sock *);
 BPF_PERF_OUTPUT(events);
@@ -29,6 +30,7 @@ int tcp_connect_ret(struct pt_regs *ctx){
     struct data_t data = {};
     struct task_struct *task = (struct task_struct *)bpf_get_current_task();
     struct pid_namespace *pidns = (struct pid_namespace * )task->nsproxy->pid_ns_for_children;
+    struct uts_namespace *uts = (struct uts_namespace * )task->nsproxy->uts_ns;
 
     sock = socklist.lookup(&pid);    
     if(sock == 0 || pidns->level == 0){
@@ -42,7 +44,8 @@ int tcp_connect_ret(struct pt_regs *ctx){
     data.daddr = sockp->__sk_common.skc_daddr;
     data.dport = sockp->__sk_common.skc_dport;
     data.level = pidns->level;
-    
+    bpf_probe_read(&data.nodename, sizeof(data.nodename), (void *)uts->name.nodename);
+
     events.perf_submit(ctx, &data, sizeof(data));
     socklist.delete(&pid);
     return 0;
